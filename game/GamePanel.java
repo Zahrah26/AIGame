@@ -1,17 +1,16 @@
 package game;
 
 import ai.AIControl;
-import model.Player;
-import model.Obstacle;
-import utils.SoundPlayer;
-
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
+import javax.swing.*;
+import model.Obstacle;
+import model.Player;
+import utils.SoundPlayer;
 
 public class GamePanel extends JPanel implements ActionListener {
     private Timer timer;
@@ -30,7 +29,7 @@ public class GamePanel extends JPanel implements ActionListener {
         setBackground(Color.BLACK);
 
         try {
-            File bgFile = new File("assets/background.png");
+            File bgFile = new File("src/assets/background.png");
             if (bgFile.exists()) {
                 background = new ImageIcon(bgFile.getAbsolutePath()).getImage();
             } else {
@@ -40,10 +39,7 @@ public class GamePanel extends JPanel implements ActionListener {
             e.printStackTrace();
         }
 
-        player = new Player(100, 500);
-        obstacles = new ArrayList<>();
-        ai = new AIControl(player, obstacles);
-        timer = new Timer(20, this);
+        initGame();
 
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
@@ -52,7 +48,18 @@ public class GamePanel extends JPanel implements ActionListener {
         });
     }
 
+    private void initGame() {
+        player = new Player(100, 500);
+        obstacles = new ArrayList<>();
+        ai = new AIControl(player, obstacles);
+        timer = new Timer(20, this);
+        score = 0;
+        gameOver = false;
+        gameWin = false;
+    }
+
     public void startGame() {
+        initGame();
         timer.start();
     }
 
@@ -61,7 +68,6 @@ public class GamePanel extends JPanel implements ActionListener {
         if (!gameOver && !gameWin) {
             ai.makeDecision();
             player.update();
-
             for (Obstacle obs : obstacles) obs.update();
 
             checkCollisions();
@@ -71,9 +77,11 @@ public class GamePanel extends JPanel implements ActionListener {
             score++;
             if (score >= WIN_SCORE) {
                 gameWin = true;
-                SoundPlayer.play("assets/win.wav"); // 🔊 Win sound
+                SoundPlayer.play("src/assets/win.wav");
                 timer.stop();
+                showEndDialog("You Win! Play Again?");
             }
+
             repaint();
         }
     }
@@ -82,8 +90,9 @@ public class GamePanel extends JPanel implements ActionListener {
         for (Obstacle obs : obstacles) {
             if (player.getBounds().intersects(obs.getBounds())) {
                 gameOver = true;
-                SoundPlayer.play("assets/gameover.wav"); // 🔊 Game Over sound
+                SoundPlayer.play("src/assets/gameover.wav");
                 timer.stop();
+                showEndDialog("Game Over! Try Again?");
             }
         }
     }
@@ -100,6 +109,27 @@ public class GamePanel extends JPanel implements ActionListener {
             Obstacle obs = it.next();
             if (obs.getX() + obs.getWidth() < 0) it.remove();
         }
+    }
+
+    private void showEndDialog(String message) {
+        SwingUtilities.invokeLater(() -> {
+            int option = JOptionPane.showOptionDialog(
+                this,
+                message,
+                "Game Over",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                new String[]{"Replay", "Quit"},
+                "Replay"
+            );
+
+            if (option == JOptionPane.YES_OPTION) {
+                startGame();
+            } else {
+                System.exit(0);
+            }
+        });
     }
 
     @Override
