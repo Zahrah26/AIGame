@@ -1,27 +1,35 @@
 package ai;
 
-import model.Player;
-import model.Obstacle;
-
 import java.util.List;
+import model.Obstacle;
+import model.Player;
 
 public class AIControl {
     private Player player;
-    private List<Obstacle> obstacles;
 
-    public AIControl(Player player, List<Obstacle> obstacles) {
+    public AIControl(Player player) {
         this.player = player;
-        this.obstacles = obstacles;
     }
 
-    public void makeDecision() {
-        for (Obstacle obs : obstacles) {
-            int distance = obs.getX() - 100;
-            if (distance > 0 && distance < 150 && player.getY() >= 500) {
+    public void update(List<Obstacle> obstacles) {
+        for (Obstacle obstacle : obstacles) {
+            double distanceToObstacle = obstacle.getX() - player.getX();
+
+            // Jump if the obstacle is near and the player is on the ground
+            if (distanceToObstacle < 100 && distanceToObstacle > 0 && player.isOnGround()) {
                 player.jump();
-                break;
+            }
+
+            // Try double jump if close and mid-air
+            if (distanceToObstacle < 50 && !player.isOnGround()) {
+                player.doubleJump(); 
+            }
+
+            // If near the goal, trigger a celebration
+            if (player.isNearGoal()) {
+                player.celebrate();
+                return;
             }
         }
     }
 }
-

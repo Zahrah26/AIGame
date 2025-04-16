@@ -9,6 +9,7 @@ public class Player {
     private int width = 60, height = 80;
     private int velocityY = 0;
     private boolean jumping = false;
+    private boolean doubleJumped = false;
     private Image sprite;
 
     public Player(int x, int y) {
@@ -31,10 +32,12 @@ public class Player {
         if (jumping) {
             velocityY += 1;
             y += velocityY;
+
             if (y >= 500) {
                 y = 500;
                 velocityY = 0;
                 jumping = false;
+                doubleJumped = false;
             }
         }
     }
@@ -43,8 +46,31 @@ public class Player {
         if (!jumping) {
             jumping = true;
             velocityY = -20;
-            utils.SoundPlayer.play("assets/jump.wav"); // 🔊 Jump sound
+            utils.SoundPlayer.play("assets/jump.wav");
         }
+    }
+
+    public void doubleJump() {
+        if (!doubleJumped && jumping) {
+            velocityY = -18;
+            doubleJumped = true;
+            System.out.println("Double jump triggered!");
+            utils.SoundPlayer.play("assets/jump.wav");
+        }
+    }
+
+    public boolean isOnGround() {
+        return y >= 500;
+    }
+
+    public boolean isNearGoal() {
+        // You can add real goal logic here
+        return false;
+    }
+
+    public void celebrate() {
+        System.out.println("🎉 Player reached the goal! 🎉");
+        utils.SoundPlayer.play("assets/win.wav");
     }
 
     public void draw(Graphics g) {
@@ -58,6 +84,10 @@ public class Player {
 
     public Rectangle getBounds() {
         return new Rectangle(x, y, width, height);
+    }
+
+    public int getX() {
+        return x;
     }
 
     public int getY() {
