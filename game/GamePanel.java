@@ -1,9 +1,13 @@
+// game/GamePanel.java
 package game;
 
 import ai.AIControl;
 import model.Obstacle;
 import model.Player;
 import utils.SoundPlayer;
+
+import javax.swing.Timer;
+
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,22 +16,22 @@ import java.io.*;
 import java.util.*;
 
 public class GamePanel extends JPanel implements ActionListener {
-    private javax.swing.Timer timer;
+    private Timer timer;
     private Player player;
     private ArrayList<Obstacle> obstacles;
     private ArrayList<Point> tokens;
     private AIControl ai;
     private int score = 0;
-    private int scoreCounter = 0; // ✅ slows score update
+    private int scoreCounter = 0;
     private int highScore = 0;
-    private int lives = 5;
+    private int lives = 3;
     private int tokenCount = 0;
     private boolean gameOver = false;
     private boolean gameWin = false;
     private boolean showGameOverScreen = false;
     private Image background;
     private Image coinImg;
-    private final int WIN_SCORE = 5000; // ✅ harder to win
+    private final int WIN_SCORE = 2000;
     private final int TOKEN_POWERUP = 5;
     private final String SCORE_FILE = "score.txt";
 
@@ -68,12 +72,12 @@ public class GamePanel extends JPanel implements ActionListener {
         ai = new AIControl(player);
         score = 0;
         scoreCounter = 0;
-        lives = 5;
+        lives = 3;
         tokenCount = 0;
         gameOver = false;
         gameWin = false;
         showGameOverScreen = false;
-        timer = new javax.swing.Timer(30, this);
+        timer = new Timer(15, this);
     }
 
     public void startGame() {
@@ -96,7 +100,6 @@ public class GamePanel extends JPanel implements ActionListener {
             cleanupTokens();
             checkTokenPickup();
 
-            // ✅ Slow score increase
             scoreCounter++;
             if (scoreCounter % 2 == 0) score++;
 
@@ -134,14 +137,15 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     private void spawnObstacles() {
-        if (new Random().nextInt(100) < 1) {
-            obstacles.add(new Obstacle(getWidth() + 200, 500));
+        if (new Random().nextInt(300) < 1) { // ✅ Much fewer obstacles (1 in 250 frames)
+            int offset = new Random().nextInt(400) + 600; // ✅ Distance between 600 and 1000px
+            obstacles.add(new Obstacle(getWidth() + offset, 500));
         }
     }
 
     private void spawnTokens() {
-        if (new Random().nextInt(140) == 0) { // ✅ separate rate from obstacles
-            int tokenY = 510; // ✅ aligned to ground level
+        if (new Random().nextInt(140) == 0) {
+            int tokenY = 510;
             tokens.add(new Point(getWidth(), tokenY));
         }
     }
