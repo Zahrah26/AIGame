@@ -1,27 +1,35 @@
 package game;
 
 import ai.AIControl;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Random;
-import javax.swing.*;
 import model.Obstacle;
 import model.Player;
 import utils.SoundPlayer;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.util.*;
+
 public class GamePanel extends JPanel implements ActionListener {
-    private Timer timer;
+    private javax.swing.Timer timer;
     private Player player;
     private ArrayList<Obstacle> obstacles;
+    private ArrayList<Point> tokens;
     private AIControl ai;
     private int score = 0;
+    private int scoreCounter = 0; // ✅ slows score update
+    private int highScore = 0;
+    private int lives = 5;
+    private int tokenCount = 0;
     private boolean gameOver = false;
     private boolean gameWin = false;
+    private boolean showGameOverScreen = false;
     private Image background;
-    private final int WIN_SCORE = 1500;
+    private Image coinImg;
+    private final int WIN_SCORE = 5000; // ✅ harder to win
+    private final int TOKEN_POWERUP = 5;
+    private final String SCORE_FILE = "score.txt";
 
     public GamePanel() {
         setFocusable(true);
@@ -30,19 +38,24 @@ public class GamePanel extends JPanel implements ActionListener {
 
         try {
             File bgFile = new File("assets/background.png");
-            if (bgFile.exists()) {
-                background = new ImageIcon(bgFile.getAbsolutePath()).getImage();
-            } else {
-                System.out.println("Background image not found.");
-            }
+            if (bgFile.exists()) background = new ImageIcon(bgFile.getAbsolutePath()).getImage();
+
+            File coinFile = new File("assets/coin.png");
+            if (coinFile.exists()) coinImg = new ImageIcon(coinFile.getAbsolutePath()).getImage();
+            else System.out.println("Coin image not found!");
+
         } catch (Exception e) {
             e.printStackTrace();
         }
 
+        loadHighScore();
         initGame();
 
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
+                if (!Main.aiMode && e.getKeyCode() == KeyEvent.VK_SPACE && !gameOver && !gameWin) {
+                    player.jump();
+                }
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) System.exit(0);
             }
         });
@@ -51,11 +64,16 @@ public class GamePanel extends JPanel implements ActionListener {
     private void initGame() {
         player = new Player(100, 500);
         obstacles = new ArrayList<>();
+        tokens = new ArrayList<>();
         ai = new AIControl(player);
-        timer = new Timer(20, this);
         score = 0;
+        scoreCounter = 0;
+        lives = 5;
+        tokenCount = 0;
         gameOver = false;
         gameWin = false;
+        showGameOverScreen = false;
+        timer = new javax.swing.Timer(30, this);
     }
 
     public void startGame() {
@@ -66,78 +84,151 @@ public class GamePanel extends JPanel implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (!gameOver && !gameWin) {
-            ai.update(obstacles); // ✅ correct method call
+            if (Main.aiMode) ai.update(obstacles);
             player.update();
 
-            for (Obstacle obs : obstacles) {
-                obs.update();
-            }
-
+            for (Obstacle obs : obstacles) obs.update();
             checkCollisions();
             spawnObstacles();
+            spawnTokens();
+            updateTokens();
             cleanupObstacles();
+            cleanupTokens();
+            checkTokenPickup();
 
-            score++;
+            // ✅ Slow score increase
+            scoreCounter++;
+            if (scoreCounter % 2 == 0) score++;
+
             if (score >= WIN_SCORE) {
                 gameWin = true;
                 SoundPlayer.play("assets/win.wav");
+                saveHighScore();
                 timer.stop();
-                showEndDialog("You Win! Play Again?");
+                showGameOverScreen = true;
             }
-
-            repaint();
         }
+
+        repaint();
     }
 
     private void checkCollisions() {
-        for (Obstacle obs : obstacles) {
-            if (player.getBounds().intersects(obs.getBounds())) {
-                gameOver = true;
+        Iterator<Obstacle> it = obstacles.iterator();
+        while (it.hasNext()) {
+            Obstacle obs = it.next();
+            if (!player.isInvisible() && player.getBounds().intersects(obs.getBounds())) {
+                lives--;
                 SoundPlayer.play("assets/gameover.wav");
-                timer.stop();
-                showEndDialog("Game Over! Try Again?");
+                player.revive();
+                it.remove();
+
+                if (lives <= 0) {
+                    gameOver = true;
+                    saveHighScore();
+                    timer.stop();
+                    showGameOverScreen = true;
+                }
+                break;
             }
         }
     }
 
     private void spawnObstacles() {
-        if (new Random().nextInt(100) < 3) {
-            obstacles.add(new Obstacle(getWidth(), 500));
+        if (new Random().nextInt(100) < 1) {
+            obstacles.add(new Obstacle(getWidth() + 200, 500));
+        }
+    }
+
+    private void spawnTokens() {
+        if (new Random().nextInt(140) == 0) { // ✅ separate rate from obstacles
+            int tokenY = 510; // ✅ aligned to ground level
+            tokens.add(new Point(getWidth(), tokenY));
+        }
+    }
+
+    private void updateTokens() {
+        for (Point token : tokens) {
+            token.x -= 4;
+        }
+    }
+
+    private void checkTokenPickup() {
+        Iterator<Point> it = tokens.iterator();
+        while (it.hasNext()) {
+            Point token = it.next();
+            Rectangle tokenRect = new Rectangle(token.x, token.y, 20, 20);
+            if (player.getBounds().intersects(tokenRect)) {
+                tokenCount++;
+                it.remove();
+
+                if (tokenCount >= TOKEN_POWERUP) {
+                    lives++;
+                    player.powerUp();
+                    tokenCount = 0;
+                }
+            }
         }
     }
 
     private void cleanupObstacles() {
-        Iterator<Obstacle> it = obstacles.iterator();
-        while (it.hasNext()) {
-            Obstacle obs = it.next();
-            if (obs.getX() + obs.getWidth() < 0) it.remove();
+        obstacles.removeIf(obs -> obs.getX() + obs.getWidth() < 0);
+    }
+
+    private void cleanupTokens() {
+        tokens.removeIf(token -> token.x < 0);
+    }
+
+    private void showEndDialog() {
+        String message = gameWin ? "🎉 YOU WIN! " : "💀 GAME OVER! ";
+        message += "\nScore: " + score;
+
+        if (score >= highScore) {
+            message += "\n🏆 NEW HIGH SCORE!";
+        } else {
+            message += "\nHigh Score: " + highScore;
+        }
+
+        int option = JOptionPane.showOptionDialog(
+            this,
+            message + "\nPlay Again?",
+            "Game Over",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.INFORMATION_MESSAGE,
+            null,
+            new String[]{"Replay", "Quit"},
+            "Replay"
+        );
+
+        if (option == JOptionPane.YES_OPTION) {
+            startGame();
+        } else {
+            System.exit(0);
         }
     }
 
-    private void showEndDialog(String message) {
-        SwingUtilities.invokeLater(() -> {
-            int option = JOptionPane.showOptionDialog(
-                this,
-                message,
-                "Game Over",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                new String[]{"Replay", "Quit"},
-                "Replay"
-            );
+    private void loadHighScore() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(SCORE_FILE))) {
+            String line = reader.readLine();
+            if (line != null) highScore = Integer.parseInt(line);
+        } catch (IOException | NumberFormatException e) {
+            highScore = 0;
+        }
+    }
 
-            if (option == JOptionPane.YES_OPTION) {
-                startGame();
-            } else {
-                System.exit(0);
+    private void saveHighScore() {
+        if (score > highScore) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(SCORE_FILE))) {
+                writer.write(String.valueOf(score));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        });
+        }
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+
         if (background != null) {
             g.drawImage(background, 0, 0, getWidth(), getHeight(), null);
         } else {
@@ -146,22 +237,28 @@ public class GamePanel extends JPanel implements ActionListener {
         }
 
         player.draw(g);
-        for (Obstacle obs : obstacles) {
-            obs.draw(g);
+        for (Obstacle obs : obstacles) obs.draw(g);
+
+        for (Point token : tokens) {
+            if (coinImg != null) {
+                g.drawImage(coinImg, token.x, token.y, 20, 20, null);
+            } else {
+                g.setColor(Color.YELLOW);
+                g.fillOval(token.x, token.y, 20, 20);
+            }
         }
 
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 24));
+        g.setFont(new Font("Arial", Font.BOLD, 20));
         g.drawString("Score: " + score, 30, 50);
+        g.drawString("Lives: " + lives + "  Tokens: " + tokenCount + "/5", 30, 80);
 
-        if (gameOver) {
-            g.setFont(new Font("Arial", Font.BOLD, 72));
-            g.drawString("GAME OVER", getWidth() / 2 - 200, getHeight() / 2);
-        }
-
-        if (gameWin) {
-            g.setFont(new Font("Arial", Font.BOLD, 72));
-            g.drawString("YOU WIN!", getWidth() / 2 - 180, getHeight() / 2);
+        if (showGameOverScreen) {
+            g.setFont(new Font("Arial", Font.BOLD, 60));
+            g.setColor(Color.RED);
+            g.drawString(gameOver ? "GAME OVER" : "YOU WIN!", getWidth() / 2 - 200, getHeight() / 2);
+            showGameOverScreen = false;
+            SwingUtilities.invokeLater(this::showEndDialog);
         }
     }
 }

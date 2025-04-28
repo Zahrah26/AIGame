@@ -8,9 +8,15 @@ public class Player {
     private int x, y;
     private int width = 60, height = 80;
     private int velocityY = 0;
-    private boolean jumping = false;
-    private boolean doubleJumped = false;
+    private boolean inAir = false;
+    private int jumps = 0;
+    private final int MAX_JUMPS = 3; // ✅ Triple jump
     private Image sprite;
+
+    private boolean isInvisible = false;     // ✅ Revive animation state
+    private long invisibleStartTime;
+    private boolean isPoweredUp = false;     // ✅ Power-up growth
+    private long powerUpStartTime;
 
     public Player(int x, int y) {
         this.x = x;
@@ -29,45 +35,62 @@ public class Player {
     }
 
     public void update() {
-        if (jumping) {
+        if (inAir) {
             velocityY += 1;
             y += velocityY;
 
             if (y >= 500) {
                 y = 500;
                 velocityY = 0;
-                jumping = false;
-                doubleJumped = false;
+                inAir = false;
+                jumps = 0; // Reset jump count when grounded
             }
+        }
+
+        // Handle invisibility timeout (revive)
+        if (isInvisible && System.currentTimeMillis() - invisibleStartTime > 1000) {
+            isInvisible = false;
+        }
+
+        // Handle power-up timeout (grow)
+        if (isPoweredUp && System.currentTimeMillis() - powerUpStartTime > 5000) {
+            isPoweredUp = false;
+            width = 60;
+            height = 80;
         }
     }
 
     public void jump() {
-        if (!jumping) {
-            jumping = true;
+        if (jumps < MAX_JUMPS) {
             velocityY = -20;
-            utils.SoundPlayer.play("assets/jump.wav");
-        }
-    }
-
-    public void doubleJump() {
-        if (!doubleJumped && jumping) {
-            velocityY = -18;
-            doubleJumped = true;
-            System.out.println("Double jump triggered!");
+            inAir = true;
+            jumps++;
             utils.SoundPlayer.play("assets/jump.wav");
         }
     }
 
     public void dodge() {
-        // Placeholder for now — extend this with a dash or animation later
-        System.out.println("Dodging obstacle!");
-        utils.SoundPlayer.play("assets/jump.wav"); // reuse jump sound or add dodge.wav if needed
+        utils.SoundPlayer.play("assets/jump.wav");
     }
 
     public void celebrate() {
-        System.out.println("🎉 Player reached the goal! 🎉");
         utils.SoundPlayer.play("assets/win.wav");
+    }
+
+    public void revive() {
+        isInvisible = true;
+        invisibleStartTime = System.currentTimeMillis();
+    }
+
+    public void powerUp() {
+        isPoweredUp = true;
+        powerUpStartTime = System.currentTimeMillis();
+        width = 80;
+        height = 100;
+    }
+
+    public boolean isInvisible() {
+        return isInvisible;
     }
 
     public boolean isOnGround() {
@@ -75,15 +98,16 @@ public class Player {
     }
 
     public boolean isJumping() {
-        return jumping;
+        return inAir;
     }
 
     public boolean isNearGoal() {
-        // Placeholder — replace with real logic when goal is implemented
         return false;
     }
 
     public void draw(Graphics g) {
+        if (isInvisible) return; // Don’t draw if invisible
+
         if (sprite != null) {
             g.drawImage(sprite, x, y, width, height, null);
         } else {
