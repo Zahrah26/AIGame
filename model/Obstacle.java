@@ -3,16 +3,18 @@ package model;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.util.Random;
 
 public class Obstacle {
     private int x, y;
     private int width = 50, height = 70;
-    private int speed = 8;
+    private int speed;
     private Image sprite;
 
     public Obstacle(int x, int y) {
         this.x = x;
         this.y = y;
+        this.speed = new Random().nextInt(5) + 3; // Speed between 3-7
 
         try {
             File imgFile = new File("assets/obstacle.png");
@@ -37,6 +39,11 @@ public class Obstacle {
             g.setColor(Color.RED);
             g.fillRect(x, y, width, height);
         }
+
+        // Optional: Draw speed for debugging
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.PLAIN, 12));
+        g.drawString("Speed: " + speed, x, y - 10);
     }
 
     public Rectangle getBounds() {
@@ -49,5 +56,9 @@ public class Obstacle {
 
     public int getWidth() {
         return width;
+    }
+
+    public int getSpeed() {
+        return speed;
     }
 }

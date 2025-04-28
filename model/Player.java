@@ -59,18 +59,28 @@ public class Player {
         }
     }
 
-    public boolean isOnGround() {
-        return y >= 500;
-    }
-
-    public boolean isNearGoal() {
-        // You can add real goal logic here
-        return false;
+    public void dodge() {
+        // Placeholder for now — extend this with a dash or animation later
+        System.out.println("Dodging obstacle!");
+        utils.SoundPlayer.play("assets/jump.wav"); // reuse jump sound or add dodge.wav if needed
     }
 
     public void celebrate() {
         System.out.println("🎉 Player reached the goal! 🎉");
         utils.SoundPlayer.play("assets/win.wav");
+    }
+
+    public boolean isOnGround() {
+        return y >= 500;
+    }
+
+    public boolean isJumping() {
+        return jumping;
+    }
+
+    public boolean isNearGoal() {
+        // Placeholder — replace with real logic when goal is implemented
+        return false;
     }
 
     public void draw(Graphics g) {

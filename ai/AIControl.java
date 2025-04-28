@@ -3,14 +3,11 @@ package ai;
 import java.util.List;
 import model.Obstacle;
 import model.Player;
+import utils.SoundPlayer;
 
 public class AIControl {
     private Player player;
-
-    // Life counter: player starts with 3 lives
     private int lives = 3;
-
-    // Game over flag to stop actions once lives reach 0
     private boolean gameOver = false;
 
     public AIControl(Player player) {
@@ -18,7 +15,6 @@ public class AIControl {
     }
 
     public void update(List<Obstacle> obstacles) {
-        // Stop updating if game is already over
         if (gameOver) {
             System.out.println("Game Over! No lives left.");
             return;
@@ -27,42 +23,49 @@ public class AIControl {
         for (Obstacle obstacle : obstacles) {
             double distanceToObstacle = obstacle.getX() - player.getX();
 
-            // Simulated collision detection: If too close and not jumping, consider it a hit
+            // Predict collision based on time-to-collision
+            if (distanceToObstacle > 0 && distanceToObstacle < 100) {
+                int relativeSpeed = obstacle.getSpeed();
+                double timeToCollision = distanceToObstacle / relativeSpeed;
+
+                // Emergency double-jump if very close
+                if (timeToCollision < 0.5 && player.isJumping()) {
+                    player.doubleJump();
+                }
+
+                // Normal jump if close and on ground
+                else if (timeToCollision < 1.5 && player.isOnGround()) {
+                    player.jump();
+                }
+            }
+
+            // Special logic for very fast obstacles
+            if (distanceToObstacle < 50 && obstacle.getSpeed() > 5) {
+                player.dodge();
+            }
+
+            // Simulated collision check (if AI fails to react)
             if (Math.abs(distanceToObstacle) < 5 && !player.isJumping()) {
-                // Deduct one life on collision
                 lives--;
-
-                // Notify remaining lives
                 System.out.println("Collision detected! Lives remaining: " + lives);
+                SoundPlayer.play("assets/gameover.wav");
 
-                // If all lives are lost, mark game as over
                 if (lives <= 0) {
                     gameOver = true;
                     System.out.println("Game Over! You lost all your lives.");
+                    SoundPlayer.play("assets/gameover.wav");
                 }
 
-                // End this update cycle after a hit
-                return;
+                return; // stop processing this frame
             }
 
-            // Jump if the obstacle is near and the player is on the ground
-            if (distanceToObstacle < 100 && distanceToObstacle > 0 && player.isOnGround()) {
-                player.jump();
-            }
-
-            // Try double jump if close and mid-air
-            if (distanceToObstacle < 50 && !player.isOnGround()) {
-                player.doubleJump(); 
-            }
-
-            // If near the goal, trigger a celebration
+            // Trigger celebration if near goal
             if (player.isNearGoal()) {
                 player.celebrate();
                 return;
             }
         }
 
-        // Display current lives during normal gameplay
-        System.out.println("Lives remaining: " + lives);
+        System.out.println("AIControl running | Lives: " + lives);
     }
 }
