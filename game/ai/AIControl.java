@@ -1,9 +1,9 @@
-
-package ai;
+package game.ai;
 
 import java.util.List;
-import model.Obstacle;
-import model.Player;
+
+import game.model.Obstacle;
+import game.model.Player;
 
 public class AIControl {
     private Player player;
@@ -22,7 +22,15 @@ public class AIControl {
                     return;
                 }
             }
+
+            // if(obstacle.getX() - player.getX() < 100 && player.isOnGround()){
+			// 	player.jump();
+			// 	break;
+			// }
         }
+            
     }
 }
+
+
 

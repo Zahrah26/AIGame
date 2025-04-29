@@ -1,6 +1,9 @@
 
 // model/Player.java
-package model;
+package game.model;
+
+import game.utils.Constants;
+import game.utils.SoundPlayer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,7 +15,7 @@ public class Player {
     private int velocityY = 0;
     private boolean inAir = false;
     private int jumps = 0;
-    private final int MAX_JUMPS = 3; // Allow triple jumps
+
     private Image sprite;
 
     private boolean isInvisible = false; // For revive (temporary invincibility)
@@ -38,11 +41,11 @@ public class Player {
 
     public void update() {
         if (inAir) {
-            velocityY += 1; // Gravity
+            velocityY += Constants.GRAVITY; // Gravity
             y += velocityY;
 
-            if (y >= 500) { // Ground level
-                y = 500;
+            if (y >= Constants.GROUND_Y) { // Ground level
+                y = Constants.GROUND_Y;
                 velocityY = 0;
                 inAir = false;
                 jumps = 0; // Reset jump count on ground
@@ -64,30 +67,30 @@ public class Player {
 
     // User-controlled jump
     public void jump() {
-        if (jumps < MAX_JUMPS) {
+        if (jumps < Constants.MAX_JUMPS) {
             velocityY = -20;
             inAir = true;
             jumps++;
-            utils.SoundPlayer.play("assets/jump.wav");
+            SoundPlayer.play("assets/jump.wav");
         }
     }
 
     // AI-controlled jump
     public void ai_jump() {
-        if (jumps < MAX_JUMPS) {
+        if (jumps < Constants.MAX_JUMPS) {
             velocityY = -20;
             inAir = true;
             jumps++;
-            utils.SoundPlayer.play("assets/jump.wav");
+            SoundPlayer.play("assets/jump.wav");
         }
     }
 
     public void dodge() {
-        utils.SoundPlayer.play("assets/jump.wav"); // Optional: reuse jump sound for dodge
+        SoundPlayer.play("assets/jump.wav"); // Optional: reuse jump sound for dodge
     }
 
     public void celebrate() {
-        utils.SoundPlayer.play("assets/win.wav"); // Play victory sound
+        SoundPlayer.play("assets/win.wav"); // Play victory sound
     }
 
     public void revive() {
@@ -107,7 +110,7 @@ public class Player {
     }
 
     public boolean isOnGround() {
-        return y >= 500;
+        return y >= Constants.GROUND_Y;
     }
 
     public boolean isJumping() {

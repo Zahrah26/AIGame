@@ -1,5 +1,5 @@
 // model/Obstacle.java
-package model;
+package game.model;
 
 import javax.swing.*;
 import java.awt.*;
@@ -8,14 +8,15 @@ import java.util.Random;
 
 public class Obstacle {
     private int x, y;
-    private int width = 50, height = 70;
+   // private int width = 30, height = 45;  // smaller obstacle
+    private int width = 50, height = 100;
     private int speed;
     private Image sprite;
 
     public Obstacle(int x, int y) {
         this.x = x;
         this.y = y;
-        this.speed = new Random().nextInt(8) + 5; // Speed between 3 and 7
+        this.speed = new Random().nextInt(8) + 5; 
 
         try {
             File imgFile = new File("assets/obstacle.png");

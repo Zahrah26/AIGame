@@ -1,11 +1,11 @@
-// game/GamePanel.java
-package game;
+package game.engine;
 
-import ai.AIControl;
-import model.Obstacle;
-import model.Player;
-import utils.SoundPlayer;
-
+import game.ai.AIControl;
+import game.model.Obstacle;
+import game.model.Player;
+import game.utils.Constants;
+import game.utils.SoundPlayer;
+//import game.engine.Main;
 import javax.swing.Timer;
 
 
@@ -15,25 +15,32 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Game panel that runs the main loop and handles rendering, input, AI, collisions, scoring, and power-ups.
+ */
 public class GamePanel extends JPanel implements ActionListener {
     private Timer timer;
     private Player player;
     private ArrayList<Obstacle> obstacles;
     private ArrayList<Point> tokens;
     private AIControl ai;
-    private int score = 0;
+
+    private int currentScore = 0;
     private int scoreCounter = 0;
     private int highScore = 0;
-    private int lives = 3;
+    private int playerLives = 3;
     private int tokenCount = 0;
-    private boolean gameOver = false;
-    private boolean gameWin = false;
+
+    private boolean isGameOver = false;
+    private boolean hasWon = false;
     private boolean showGameOverScreen = false;
+
     private Image background;
     private Image coinImg;
-    private final int WIN_SCORE = 2000;
+
+    private final int WINNING_SCORE_THRESHOLD = 2000;
     private final int TOKEN_POWERUP = 5;
-    private final String SCORE_FILE = "score.txt";
+    private final String SCORE_FILE_RECORD = "score.txt";
 
     public GamePanel() {
         setFocusable(true);
@@ -42,11 +49,16 @@ public class GamePanel extends JPanel implements ActionListener {
 
         try {
             File bgFile = new File("assets/background.png");
-            if (bgFile.exists()) background = new ImageIcon(bgFile.getAbsolutePath()).getImage();
+            if (bgFile.exists()) {
+                background = new ImageIcon(bgFile.getAbsolutePath()).getImage();
+            }
 
             File coinFile = new File("assets/coin.png");
-            if (coinFile.exists()) coinImg = new ImageIcon(coinFile.getAbsolutePath()).getImage();
-            else System.out.println("Coin image not found!");
+            if (coinFile.exists()) {
+                coinImg = new ImageIcon(coinFile.getAbsolutePath()).getImage();
+            } else {
+                System.out.println("Coin image not found!");
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -57,7 +69,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
-                if (!Main.aiMode && e.getKeyCode() == KeyEvent.VK_SPACE && !gameOver && !gameWin) {
+                if (!Main.aiMode && e.getKeyCode() == KeyEvent.VK_SPACE && !isGameOver && !hasWon) {
                     player.jump();
                 }
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) System.exit(0);
@@ -66,17 +78,19 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     private void initGame() {
-        player = new Player(100, 500);
+        player = new Player(100, Constants.GROUND_Y);
         obstacles = new ArrayList<>();
         tokens = new ArrayList<>();
         ai = new AIControl(player);
-        score = 0;
+
+        currentScore = 0;
         scoreCounter = 0;
-        lives = 3;
+        playerLives = 3;
         tokenCount = 0;
-        gameOver = false;
-        gameWin = false;
+        isGameOver = false;
+        hasWon = false;
         showGameOverScreen = false;
+
         timer = new Timer(15, this);
     }
 
@@ -87,11 +101,12 @@ public class GamePanel extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (!gameOver && !gameWin) {
+        if (!isGameOver && !hasWon) {
             if (Main.aiMode) ai.update(obstacles);
             player.update();
 
             for (Obstacle obs : obstacles) obs.update();
+
             checkCollisions();
             spawnObstacles();
             spawnTokens();
@@ -101,10 +116,10 @@ public class GamePanel extends JPanel implements ActionListener {
             checkTokenPickup();
 
             scoreCounter++;
-            if (scoreCounter % 2 == 0) score++;
+            if (scoreCounter % 2 == 0) currentScore++;
 
-            if (score >= WIN_SCORE) {
-                gameWin = true;
+            if (currentScore >= WINNING_SCORE_THRESHOLD) {
+                hasWon = true;
                 SoundPlayer.play("assets/win.wav");
                 saveHighScore();
                 timer.stop();
@@ -120,13 +135,13 @@ public class GamePanel extends JPanel implements ActionListener {
         while (it.hasNext()) {
             Obstacle obs = it.next();
             if (!player.isInvisible() && player.getBounds().intersects(obs.getBounds())) {
-                lives--;
+                playerLives--;
                 SoundPlayer.play("assets/gameover.wav");
                 player.revive();
                 it.remove();
 
-                if (lives <= 0) {
-                    gameOver = true;
+                if (playerLives<= 0) {
+                    isGameOver = true;
                     saveHighScore();
                     timer.stop();
                     showGameOverScreen = true;
@@ -137,15 +152,15 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     private void spawnObstacles() {
-        if (new Random().nextInt(300) < 1) { // ✅ Much fewer obstacles (1 in 250 frames)
-            int offset = new Random().nextInt(400) + 600; // ✅ Distance between 600 and 1000px
-            obstacles.add(new Obstacle(getWidth() + offset, 500));
+        if (new Random().nextInt(400) < 1) {
+            int offset = new Random().nextInt(400) + 600;
+            obstacles.add(new Obstacle(getWidth() + offset, Constants.GROUND_Y));
         }
     }
 
     private void spawnTokens() {
         if (new Random().nextInt(140) == 0) {
-            int tokenY = 510;
+            int tokenY = Constants.GROUND_Y + 10;
             tokens.add(new Point(getWidth(), tokenY));
         }
     }
@@ -166,7 +181,7 @@ public class GamePanel extends JPanel implements ActionListener {
                 it.remove();
 
                 if (tokenCount >= TOKEN_POWERUP) {
-                    lives++;
+                    playerLives++;
                     player.powerUp();
                     tokenCount = 0;
                 }
@@ -183,10 +198,10 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     private void showEndDialog() {
-        String message = gameWin ? "🎉 YOU WIN! " : "💀 GAME OVER! ";
-        message += "\nScore: " + score;
+        String message = hasWon ? "🎉 YOU WIN! " : "💀 GAME OVER! ";
+        message += "\nScore: " + currentScore;
 
-        if (score >= highScore) {
+        if (currentScore >= highScore) {
             message += "\n🏆 NEW HIGH SCORE!";
         } else {
             message += "\nHigh Score: " + highScore;
@@ -211,7 +226,7 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     private void loadHighScore() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(SCORE_FILE))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(SCORE_FILE_RECORD))) {
             String line = reader.readLine();
             if (line != null) highScore = Integer.parseInt(line);
         } catch (IOException | NumberFormatException e) {
@@ -220,9 +235,9 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     private void saveHighScore() {
-        if (score > highScore) {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(SCORE_FILE))) {
-                writer.write(String.valueOf(score));
+        if (currentScore > highScore) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(SCORE_FILE_RECORD))) {
+                writer.write(String.valueOf(currentScore));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -254,17 +269,15 @@ public class GamePanel extends JPanel implements ActionListener {
 
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 20));
-        g.drawString("Score: " + score, 30, 50);
-        g.drawString("Lives: " + lives + "  Tokens: " + tokenCount + "/5", 30, 80);
+        g.drawString("Score: " + currentScore, 30, 50);
+        g.drawString("Lives: " + playerLives + "  Tokens: " + tokenCount + "/5", 30, 80);
 
         if (showGameOverScreen) {
             g.setFont(new Font("Arial", Font.BOLD, 60));
             g.setColor(Color.RED);
-            g.drawString(gameOver ? "GAME OVER" : "YOU WIN!", getWidth() / 2 - 200, getHeight() / 2);
+            g.drawString(isGameOver ? "GAME OVER" : "YOU WIN!", getWidth() / 2 - 200, getHeight() / 2);
             showGameOverScreen = false;
             SwingUtilities.invokeLater(this::showEndDialog);
         }
     }
 }
-
-

@@ -1,5 +1,5 @@
 // utils/SoundPlayer.java
-package utils;
+package game.utils;
 
 import javax.sound.sampled.*;
 import java.io.File;

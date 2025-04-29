@@ -1,5 +1,5 @@
 // game/Main.java
-package game;
+package game.engine;
 
 import javax.swing.*;
 
