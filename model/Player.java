@@ -1,3 +1,5 @@
+
+// model/Player.java
 package model;
 
 import javax.swing.*;
@@ -10,12 +12,12 @@ public class Player {
     private int velocityY = 0;
     private boolean inAir = false;
     private int jumps = 0;
-    private final int MAX_JUMPS = 3; // ✅ Triple jump
+    private final int MAX_JUMPS = 3; // Allow triple jumps
     private Image sprite;
 
-    private boolean isInvisible = false;     // ✅ Revive animation state
+    private boolean isInvisible = false; // For revive (temporary invincibility)
     private long invisibleStartTime;
-    private boolean isPoweredUp = false;     // ✅ Power-up growth
+    private boolean isPoweredUp = false; // For power-up (grow size)
     private long powerUpStartTime;
 
     public Player(int x, int y) {
@@ -36,23 +38,23 @@ public class Player {
 
     public void update() {
         if (inAir) {
-            velocityY += 1;
+            velocityY += 1; // Gravity
             y += velocityY;
 
-            if (y >= 500) {
+            if (y >= 500) { // Ground level
                 y = 500;
                 velocityY = 0;
                 inAir = false;
-                jumps = 0; // Reset jump count when grounded
+                jumps = 0; // Reset jump count on ground
             }
         }
 
-        // Handle invisibility timeout (revive)
+        // Handle invisibility timeout after revive
         if (isInvisible && System.currentTimeMillis() - invisibleStartTime > 1000) {
             isInvisible = false;
         }
 
-        // Handle power-up timeout (grow)
+        // Handle power-up timeout
         if (isPoweredUp && System.currentTimeMillis() - powerUpStartTime > 5000) {
             isPoweredUp = false;
             width = 60;
@@ -60,6 +62,7 @@ public class Player {
         }
     }
 
+    // User-controlled jump
     public void jump() {
         if (jumps < MAX_JUMPS) {
             velocityY = -20;
@@ -69,12 +72,22 @@ public class Player {
         }
     }
 
+    // AI-controlled jump
+    public void ai_jump() {
+        if (jumps < MAX_JUMPS) {
+            velocityY = -20;
+            inAir = true;
+            jumps++;
+            utils.SoundPlayer.play("assets/jump.wav");
+        }
+    }
+
     public void dodge() {
-        utils.SoundPlayer.play("assets/jump.wav");
+        utils.SoundPlayer.play("assets/jump.wav"); // Optional: reuse jump sound for dodge
     }
 
     public void celebrate() {
-        utils.SoundPlayer.play("assets/win.wav");
+        utils.SoundPlayer.play("assets/win.wav"); // Play victory sound
     }
 
     public void revive() {
@@ -85,7 +98,7 @@ public class Player {
     public void powerUp() {
         isPoweredUp = true;
         powerUpStartTime = System.currentTimeMillis();
-        width = 80;
+        width = 80; // Grow bigger during power-up
         height = 100;
     }
 
@@ -102,11 +115,11 @@ public class Player {
     }
 
     public boolean isNearGoal() {
-        return false;
+        return false; // Placeholder
     }
 
     public void draw(Graphics g) {
-        if (isInvisible) return; // Don’t draw if invisible
+        if (isInvisible) return; // Don't draw player if invisible (revive effect)
 
         if (sprite != null) {
             g.drawImage(sprite, x, y, width, height, null);
@@ -128,3 +141,4 @@ public class Player {
         return y;
     }
 }
+

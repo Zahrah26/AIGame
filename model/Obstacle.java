@@ -15,7 +15,7 @@ public class Obstacle {
     public Obstacle(int x, int y) {
         this.x = x;
         this.y = y;
-        this.speed = new Random().nextInt(5) + 3; // Speed between 3 and 7
+        this.speed = new Random().nextInt(8) + 5; // Speed between 3 and 7
 
         try {
             File imgFile = new File("assets/obstacle.png");

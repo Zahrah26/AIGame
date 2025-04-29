@@ -1,4 +1,4 @@
-// ai/AIControl.java
+
 package ai;
 
 import java.util.List;
@@ -14,18 +14,15 @@ public class AIControl {
 
     public void update(List<Obstacle> obstacles) {
         for (Obstacle obstacle : obstacles) {
-            double distanceToObstacle = obstacle.getX() - player.getX();
+            double distance = obstacle.getX() - player.getX();
 
-            if (distanceToObstacle > 0 && distanceToObstacle < 120) { 
-                if (player.isOnGround()) {
-                    player.jump(); // Normal jump
-                    return;
-                }
-                else if (player.isJumping()) {
-                    player.jump(); // Second/third jump if needed
+            if (distance > 0 && distance < 150) {
+                if (player.isOnGround() || player.isJumping()) {
+                    player.ai_jump(); // jump immediately if possible (up to 3 times)
                     return;
                 }
             }
         }
     }
 }
+
