@@ -20,7 +20,7 @@ Oushvina Seewoobudut (ID:2314942)
 
 Chetanand Dussuruth (ID: 2314830)
 
-Each team member contributed to different parts of the project, including game logic, AI behavior, player controls, obstacle dynamics, and documentation.
+Each team member contributed to different parts of the project, including game logic, AI behavior, player controls, obstacle dynamics, and documentation.The team collaborated using GitHub for version control and seamless integration of contributions.
 
 3. Game Rules and Mechanics:
 
